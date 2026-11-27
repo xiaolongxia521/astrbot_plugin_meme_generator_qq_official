@@ -91,7 +91,9 @@ class ParamCollector:
         if not target_ids:
             if result := await PlatformUtils.get_user_extra_info(event, send_id):
                 nickname, sex = result
-                options["name"], options["gender"] = nickname, sex
+                options["name"] = nickname
+                if sex not in (None, ""):
+                    options["gender"] = sex
                 target_names.append(nickname)
 
         if not target_names:
@@ -104,6 +106,12 @@ class ParamCollector:
 
         # 智能补全文本参数（使用昵称和默认文本）
         self._auto_fill_texts(texts, target_names, default_texts, min_texts, max_texts)
+
+        # meme_generator 的 Rust 绑定只接受 bool/str/int/float，
+        # 过滤掉 None，避免 OptionValue 枚举提取失败。
+        options = {
+            key: value for key, value in options.items() if value is not None
+        }
 
         return meme_images, texts, options
 
@@ -294,7 +302,9 @@ class ParamCollector:
         nickname = qq
         if result := await PlatformUtils.get_user_extra_info(event, qq):
             nickname, sex = result
-            options["name"], options["gender"] = nickname, sex
+            options["name"] = nickname
+            if sex not in (None, ""):
+                options["gender"] = sex
         target_names.append(nickname)
 
         if self.network_utils:

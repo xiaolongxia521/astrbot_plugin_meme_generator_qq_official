@@ -4,7 +4,7 @@
 
 # AstrBot 表情包生成插件
 
-**v2.3.3 · 关键词触发 · QQ 头像 · QQ 官方机器人适配**
+**v2.3.4 · 关键词触发 · QQ 头像 · QQ 官方机器人适配**
 
 基于 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs) 的 AstrBot 表情包插件。
 

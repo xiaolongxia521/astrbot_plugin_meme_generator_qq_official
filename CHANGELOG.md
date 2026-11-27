@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.3.4
+
+- 修复 QQ 官方平台 `gender` 为 `None` 时传入 `meme_generator` 导致 `OptionValue` 枚举提取失败
+- 过滤 `options` 中的 `None` 值，避免 Rust 绑定收到不支持的类型
+
 ## v2.3.3
 
 - 适配 QQ 官方机器人（`qq_official` / `qq_official_webhook`）头像获取
