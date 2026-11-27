@@ -26,13 +26,14 @@ class ResourceNotReadyError(RuntimeError):
 class MemeManager:
     """表情包管理器 - 核心业务逻辑"""
     
-    def __init__(self, config, data_dir: str = None):
+    def __init__(self, config, data_dir: str = None, context=None):
         self.config = config
         self.template_manager = TemplateManager()
         self.image_generator = ImageGenerator()
         self.cooldown_manager = CooldownManager(config.cooldown_seconds)
         self.resource_status = ResourceStatus()
         self.data_dir = Path(data_dir).resolve() if data_dir else None
+        self.context = context
 
         # 初始化头像缓存和网络工具
         # 使用传入的数据目录，如果没有则使用默认路径
@@ -46,7 +47,11 @@ class MemeManager:
             enable_cache=config.enable_avatar_cache,
             cache_dir=str(cache_dir)
         )
-        self.network_utils = NetworkUtils(self.avatar_cache)
+        self.network_utils = NetworkUtils(
+            self.avatar_cache,
+            context=context,
+            qq_official_appid=getattr(config, "qq_official_appid", ""),
+        )
 
         # 初始化缓存管理器，使用配置的缓存过期时间
         self.cache_manager = CacheManager(
@@ -208,6 +213,13 @@ class MemeManager:
 
         return template_info
     
+    def remember_event(self, event: AstrMessageEvent) -> None:
+        """缓存事件中的用户头像/昵称，供后续 @ 或发送者头像使用。"""
+        try:
+            self.network_utils.remember_event(event)
+        except Exception as e:
+            logger.debug("缓存事件用户资料失败: %s", e)
+
     async def generate_meme(self, event: AstrMessageEvent) -> Optional[bytes]:
         """
         生成表情包主流程
@@ -218,6 +230,9 @@ class MemeManager:
         Returns:
             生成的表情包图片字节数据，失败返回None
         """
+        # 先缓存当前消息中的发送者与 @ 成员资料，普通聊天消息也会经过这里
+        self.remember_event(event)
+
         # 检查用户冷却
         user_id = event.get_sender_id()
         if self.cooldown_manager.is_user_in_cooldown(user_id):

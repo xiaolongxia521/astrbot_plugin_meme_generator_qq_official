@@ -98,7 +98,9 @@ class ParamCollector:
             target_names.append(sender_name)
 
         # 智能补全图片参数（优先使用用户头像）
-        await self._auto_fill_images(send_id, self_id, sender_name, meme_images, max_images)
+        await self._auto_fill_images(
+            send_id, self_id, sender_name, meme_images, max_images, event
+        )
 
         # 智能补全文本参数（使用昵称和默认文本）
         self._auto_fill_texts(texts, target_names, default_texts, min_texts, max_texts)
@@ -223,7 +225,28 @@ class ParamCollector:
             keyword_prefix: str = "",
     ):
         """处理纯文本组件，并把独立的 QQ 号解析为头像目标。"""
-        plains: List[str] = seg.text.strip().split()
+        raw_text = seg.text or ""
+
+        # QQ 官方的 @ 目标不会生成 At 组件，而是在文本里保留 <@OPENID>
+        if PlatformUtils.is_qq_official(event):
+            for target in re.findall(r"<@!?([^>\s]+)>", raw_text):
+                if target == "all" or target == str(self_id) or target in target_ids:
+                    continue
+                if len(meme_images) >= max_images:
+                    break
+                await self._process_qq_target(
+                    target,
+                    event,
+                    self_id,
+                    target_ids,
+                    target_names,
+                    options,
+                    meme_images,
+                    ignore_self=True,
+                )
+            raw_text = re.sub(r"<@!?[^>\s]+>", " ", raw_text)
+
+        plains: List[str] = raw_text.strip().split()
         prefixed_keyword = f"{keyword_prefix}{keyword}" if keyword_prefix else keyword
         for text in plains:
             if text in {keyword, prefixed_keyword}:
@@ -274,8 +297,16 @@ class ParamCollector:
             options["name"], options["gender"] = nickname, sex
         target_names.append(nickname)
 
-        if self.network_utils and (avatar := await self.network_utils.get_avatar(qq)):
-            meme_images.append(MemeImage(nickname, avatar))
+        if self.network_utils:
+            avatar = await self.network_utils.get_avatar(qq, event=event)
+            if avatar:
+                meme_images.append(MemeImage(nickname, avatar))
+            else:
+                logger.debug(
+                    "未能获取用户 %s 的头像（平台: %s）",
+                    qq,
+                    event.get_platform_name(),
+                )
 
     async def _auto_fill_images(
             self,
@@ -283,14 +314,20 @@ class ParamCollector:
             self_id: str,
             sender_name: str,
             meme_images: List[MemeImage],
-            max_images: int
+            max_images: int,
+            event: AstrMessageEvent,
     ):
         """自动补全图片参数"""
         if self.network_utils and len(meme_images) < max_images:
-            if use_avatar := await self.network_utils.get_avatar(send_id):
+            if use_avatar := await self.network_utils.get_avatar(send_id, event=event):
                 meme_images.insert(0, MemeImage(sender_name, use_avatar))
-        if self.network_utils and len(meme_images) < max_images:
-            if bot_avatar := await self.network_utils.get_avatar(self_id):
+        if (
+            self.network_utils
+            and self_id
+            and self_id not in {"qq_official", "unknown_selfid"}
+            and len(meme_images) < max_images
+        ):
+            if bot_avatar := await self.network_utils.get_avatar(self_id, event=event):
                 meme_images.insert(0, MemeImage("机器人", bot_avatar))
         # 截取到最大数量
         meme_images[:] = meme_images[:max_images]

@@ -4,7 +4,7 @@
 
 # AstrBot 表情包生成插件
 
-**v2.3.2 · 关键词触发 · QQ 头像 · 单页模板目录**
+**v2.3.3 · 关键词触发 · QQ 头像 · QQ 官方机器人适配**
 
 基于 [meme-generator-rs](https://github.com/MemeCrafters/meme-generator-rs) 的 AstrBot 表情包插件。
 
@@ -14,6 +14,7 @@
 
 - 发送模板关键词即可生成表情包。
 - 支持 `@用户`、QQ 号、图片、文本和引用消息。
+- 支持 QQ 官方机器人（`qq_official` / `qq_official_webhook`）的 `member_openid` 头像。
 - 支持触发前缀、生成冷却、头像缓存和生成超时配置。
 - 管理员可以禁用单个模板或停用整个插件。
 - QQ 群：`771954725`
@@ -63,7 +64,6 @@ pip install -r astrbot_plugin_meme_generator/requirements.txt
 ```
 
 QQ 号必须作为独立参数填写，例如 `摸头 2352938756`。直接填写机器人自身 QQ 号同样有效。
-
 如果配置了 `trigger_prefix`，则需要在关键词前添加该前缀。例如前缀为 `#`：
 
 ```text
@@ -71,6 +71,17 @@ QQ 号必须作为独立参数填写，例如 `摸头 2352938756`。直接填写
 ```
 
 不建议让插件的 `trigger_prefix` 与 AstrBot 全局唤醒前缀相同，否则消息可能先进入对话处理流程。
+
+### QQ 官方机器人
+
+在 QQ 官方机器人平台（`qq_official` / `qq_official_webhook`）下，用户 ID 是 `member_openid` 而不是真实 QQ 号。插件会：
+
+- 从群消息事件和 `mentions` 中缓存发送者、被 @ 成员的头像与昵称；
+- 使用 `https://thirdqq.qlogo.cn/qqapp/{appid}/{member_openid}/640` 兜底获取头像；
+- 自动识别消息文本里的 `<@OPENID>`，因此 `摸头 @群友` 和 `@群友 摸头` 都能正常触发；
+- 如果自动读取不到 AppID，可在配置中手动填写 `qq_official_appid`。
+
+> QQ 官方机器人需要能收到对应群消息。若机器人只接收 @机器人 的消息，建议在群机器人设置中开启「接收所有消息」，这样才能缓存更多成员头像。
 
 ### 基础命令
 
@@ -144,6 +155,7 @@ fc-cache -fv
 | `generation_timeout` | `int` | `30` | 单次生成超时，范围 5–120 秒 |
 | `enable_avatar_cache` | `bool` | `true` | 是否缓存 QQ 头像 |
 | `cache_expire_hours` | `int` | `24` | 头像缓存有效期，范围 1–168 小时 |
+| `qq_official_appid` | `string` | `""` | QQ 官方机器人 AppID；留空自动从平台实例读取 |
 | `disabled_templates` | `list` | `[]` | 被管理员禁用的模板列表 |
 
 ## 外部模板

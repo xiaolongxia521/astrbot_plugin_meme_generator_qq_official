@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.3.3
+
+- 适配 QQ 官方机器人（`qq_official` / `qq_official_webhook`）头像获取
+- 支持 `member_openid` + AppID 的 thirdqq 头像模板，并在事件中缓存头像/昵称
+- 修复消息文本中的 `<@OPENID>` 导致关键词无法触发的问题
+- 支持从 `mentions` 解析被 @ 成员的头像与昵称
+
 ## v2.3.2
 
 - `/表情列表` 一次展示全部模板，不再需要翻页

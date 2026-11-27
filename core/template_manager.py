@@ -5,6 +5,8 @@ from typing import List, Optional
 from meme_generator import Meme, get_memes
 from astrbot.api import logger
 
+from ..utils.platform_utils import PlatformUtils
+
 
 class TemplateManager:
     """表情包模板管理器"""
@@ -92,6 +94,13 @@ class TemplateManager:
     ) -> str:
         """标准化触发消息，可按需移除首个关键词前缀。"""
         message_str = (message_str or "").strip()
+        if not message_str:
+            return ""
+
+        # QQ 官方的 @ 目标会在消息文本里表现为 <@OPENID>，需要先移除，
+        # 否则关键词会变成第二个词而无法匹配。
+        message_str = PlatformUtils.strip_mention_markup(message_str)
+        message_str = " ".join(message_str.split())
         if not message_str:
             return ""
 

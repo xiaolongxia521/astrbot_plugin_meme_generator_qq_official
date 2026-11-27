@@ -94,6 +94,9 @@ class MemeConfig:
         self.cooldown_seconds: int = self.config.get("cooldown_seconds", 3)
         self.enable_avatar_cache: bool = self.config.get("enable_avatar_cache", True)
         self.cache_expire_hours: int = self.config.get("cache_expire_hours", 24)
+        self.qq_official_appid: str = str(
+            self.config.get("qq_official_appid", "") or ""
+        ).strip()
         self.disabled_templates: list[str] = self.config.get("disabled_templates", [])
 
     def _save_specific_config(self, key: str, value):
@@ -360,7 +363,7 @@ class MemeGeneratorPlugin(Star):
         data_dir = str(MEME_HOME)
 
         # 初始化核心管理器
-        self.meme_manager = MemeManager(self.meme_config, data_dir)
+        self.meme_manager = MemeManager(self.meme_config, data_dir, context=self.context)
 
         # 初始化命令处理器
         self.template_handlers = TemplateHandlers(self.meme_manager, self.meme_config)
